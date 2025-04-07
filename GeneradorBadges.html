@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Insignias Shields.io</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-weight: 600;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .color-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-preview {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #badge-preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+        #markdown-output {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 600px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Insignias Shields.io</h1>
+        <p>Crea insignias personalizadas y obtén el código Markdown para incrustarlas</p>
+
+        <div class="two-columns">
+            <div class="form-group">
+                <label for="label">Texto izquierdo (label):</label>
+                <input type="text" id="label" placeholder="ej. version">
+            </div>
+
+            <div class="form-group">
+                <label for="message">Texto derecho (message):</label>
+                <input type="text" id="message" placeholder="ej. 1.0.0">
+            </div>
+        </div>
+
+        <div class="two-columns">
+            <div class="form-group">
+                <label for="color">Color derecho:</label>
+                <div class="color-input">
+                    <input type="text" id="color" placeholder="ej. brightgreen" value="blue">
+                    <input type="color" id="color-picker" value="#007ec6">
+                    <div class="color-preview" id="color-preview" style="background-color: #007ec6;"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="labelColor">Color izquierdo:</label>
+                <div class="color-input">
+                    <input type="text" id="labelColor" placeholder="ej. #555" value="#555">
+                    <input type="color" id="labelColor-picker" value="#555555">
+                    <div class="color-preview" id="labelColor-preview" style="background-color: #555;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-columns">
+            <div class="form-group">
+                <label for="style">Estilo:</label>
+                <select id="style">
+                    <option value="plastic">Plastic</option>
+                    <option value="flat" selected>Flat</option>
+                    <option value="flat-square">Flat Square</option>
+                    <option value="for-the-badge">For the Badge</option>
+                    <option value="social">Social</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="logo">Logo (nombre simple o data:image):</label>
+                <input type="text" id="logo" placeholder="ej. github">
+            </div>
+        </div>
+
+        <button id="generate-btn">Generar Insignia</button>
+
+        <div id="badge-preview"></div>
+
+        <div class="form-group">
+            <label for="markdown-output">Código Markdown:</label>
+            <div id="markdown-output">La insignia aparecerá aquí</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos del DOM
+            const labelInput = document.getElementById('label');
+            const messageInput = document.getElementById('message');
+            const colorInput = document.getElementById('color');
+            const colorPicker = document.getElementById('color-picker');
+            const colorPreview = document.getElementById('color-preview');
+            const labelColorInput = document.getElementById('labelColor');
+            const labelColorPicker = document.getElementById('labelColor-picker');
+            const labelColorPreview = document.getElementById('labelColor-preview');
+            const styleSelect = document.getElementById('style');
+            const logoInput = document.getElementById('logo');
+            const generateBtn = document.getElementById('generate-btn');
+            const badgePreview = document.getElementById('badge-preview');
+            const markdownOutput = document.getElementById('markdown-output');
+
+            // Sincronizar el selector de color con el input de texto
+            colorPicker.addEventListener('input', function() {
+                colorInput.value = this.value;
+                colorPreview.style.backgroundColor = this.value;
+            });
+
+            colorInput.addEventListener('input', function() {
+                if (this.value.startsWith('#')) {
+                    colorPicker.value = this.value;
+                    colorPreview.style.backgroundColor = this.value;
+                }
+            });
+
+            labelColorPicker.addEventListener('input', function() {
+                labelColorInput.value = this.value;
+                labelColorPreview.style.backgroundColor = this.value;
+            });
+
+            labelColorInput.addEventListener('input', function() {
+                if (this.value.startsWith('#')) {
+                    labelColorPicker.value = this.value;
+                    labelColorPreview.style.backgroundColor = this.value;
+                }
+            });
+
+            // Generar la insignia
+            generateBtn.addEventListener('click', function() {
+                const label = encodeURIComponent(labelInput.value.trim());
+                const message = encodeURIComponent(messageInput.value.trim());
+                const color = encodeURIComponent(colorInput.value.trim());
+                const labelColor = encodeURIComponent(labelColorInput.value.trim());
+                const style = encodeURIComponent(styleSelect.value);
+                const logo = encodeURIComponent(logoInput.value.trim());
+
+                // Construir la URL de la insignia
+                let badgeUrl = `https://img.shields.io/badge/${label}-${message}-${color}?style=${style}&labelColor=${labelColor}`;
+
+                if (logo) {
+                    badgeUrl += `&logo=${logo}`;
+                }
+
+                // Mostrar la previsualización
+                badgePreview.innerHTML = `<img src="${badgeUrl}" alt="${labelInput.value} ${messageInput.value}" style="max-width: 100%;">`;
+
+                // Generar el código Markdown
+                const markdownCode = `![${labelInput.value} ${messageInput.value}](${badgeUrl})`;
+                markdownOutput.textContent = markdownCode;
+            });
+
+            // Generar una insignia por defecto al cargar la página
+            generateBtn.click();
+        });
+    </script>
+</body>
+</html>
